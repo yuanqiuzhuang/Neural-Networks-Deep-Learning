@@ -69,8 +69,27 @@ class Network(object):
     def backprop(self, x, y):
         nabla_b = [np.zeros(b.shape) for b in self.bias]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        
 
+        # 前向传播各值的计算
+        activation = x
+        activations = [x] # 按层存储所有激活值的列表
+        zs = [] # 按层存储所有的z向量，z = w * a + b
+        for b, w in zip(self.bias, self.weights):
+            z = np.dot(w, activation) + b
+            zs.append(z)
+            activation = sigmoid(z)
+            activations.append(activation)
+
+        # 反向传播
+        delta = self.cost_derivative(activations[-1], y) * sigmoid_prim(zs[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = np.dot(delta, activations[-2].transpose())
+        for l in xrange(2, self.num_layers):
+            z = zs[-l]
+            sp = sigmoid_prim(z)
+            delta = np.dot(self.weights[-l + 1].transpose(), delta) * sp
+            nabla_b[-l] = delta
+            nabla_w[-l] = np.dot(delta, activations[-l - 1].transpose())
         return (nabla_b, nabla_w)
 
     def evaluate(self, test_data):
@@ -79,6 +98,10 @@ class Network(object):
         test_results = [(np.argmax(self.feedforward(x)), y)
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+    def cost_derivative(self, output_activations, y):
+        """返回损失函数关于输出层激活值偏导数的向量。"""
+        return (output_activations - y)
 
 
 
