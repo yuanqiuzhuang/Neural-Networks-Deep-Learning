@@ -39,9 +39,47 @@ class Network(object):
         for j in xrange(epochs):
             random.shuffle(training_data)
             mini_batches = [
-                training_data[k:k + mini_batch_size]
+                training_data[k : k + mini_batch_size]
                 for k in xrange(0, n, mini_batch_size)
             ]
+            for mini_batch in mini_batches:
+                self.update_mini_batch(mini_batch, eta)
+            if test_data:
+                print("Epoch {0}: {1} / {2}".format(
+                    j, self.evaluate(test_data), n_test)
+                )
+            else:
+                print("Epoch {0} complete.".format(j))
+
+    def update_mini_batch(self, mini_batch, eta):
+        """使用mini_batch中的训练数据，根据单次梯度下降的迭代更新网络的偏置和权重。"""
+        # 初始化每一层的偏置和权重梯度。
+        nabla_b = [np.zeros(b.shape) for b in self.bias]
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+        for x, y in mini_batch:
+            # 调用反向传播算法，快速计算损失函数的梯度。
+            delta_nabla_b, delta_nabla_w = self.backprop(x, y)
+            nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+            nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        self.weights = [w - eta / len(mini_batch) * nw
+                        for w, nw in zip(self.weights, nabla_w)]
+        self.bias = [b - eta / len(mini_batch) * nb
+                     for b, nb in zip(self.bias, nabla_b)]
+
+    def backprop(self, x, y):
+        nabla_b = [np.zeros(b.shape) for b in self.bias]
+        nabla_w = [np.zeros(w.shape) for w in self.weights]
+        
+
+        return (nabla_b, nabla_w)
+
+    def evaluate(self, test_data):
+        """网络评估函数。返回神经网络正确预测的测试数据的数目。"""
+        # 前馈网络计算得到的10维向量值最大的下标即预测结果。
+        test_results = [(np.argmax(self.feedforward(x)), y)
+                        for (x, y) in test_data]
+        return sum(int(x == y) for (x, y) in test_results)
+
 
 
 ### 函数定义
@@ -52,3 +90,10 @@ def sigmoid(z):
 def sigmoid_prim(z):
     """sigmoid函数的导数。"""
     return sigmoid(z) * (1 - sigmoid(z))
+
+"""
+sizes = [2, 3, 1]
+net = Network(sizes)
+print net.weights
+print net.bias
+"""
